@@ -1,0 +1,1213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Stickman Gun</title>
+    <script src="https://unpkg.com/peerjs@1.4.7/dist/peerjs.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background: #fef3c7;
+            height: 100vh;
+            width: 100vw;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .screen {
+            display: none;
+            width: 100%;
+            height: 100%;
+            max-width: 500px;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 10px;
+        }
+
+        .screen.active {
+            display: flex;
+        }
+
+        h1 {
+            font-size: clamp(1.3rem, 4vw, 2rem);
+            margin-bottom: 15px;
+            color: #1a1a2e;
+            text-align: center;
+        }
+
+        h2 {            font-size: clamp(1.1rem, 3.5vw, 1.6rem);
+            margin-bottom: 12px;
+            color: #1a1a2e;
+        }
+
+        button {
+            width: 100%;
+            max-width: 260px;
+            padding: 10px 18px;
+            margin: 6px 0;
+            font-size: clamp(0.85rem, 2.8vw, 0.95rem);
+            font-weight: 600;
+            border: 2px solid #1a1a2e;
+            border-radius: 10px;
+            background: white;
+            color: #1a1a2e;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        button:hover:not(:disabled) {
+            background: #f0f0f0;
+            transform: translateY(-1px);
+        }
+
+        button:active:not(:disabled) {
+            transform: translateY(0);
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-primary {
+            background: #e94560;
+            color: white;
+            border-color: #e94560;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            background: #d63850;
+        }
+
+        .btn-success {
+            background: #27ae60;
+            color: white;
+            border-color: #27ae60;
+        }
+        .btn-success:disabled {
+            background: #95a5a6;
+            cursor: not-allowed;
+        }
+
+        input {
+            width: 100%;
+            max-width: 260px;
+            padding: 10px;
+            margin: 6px 0;
+            font-size: clamp(0.85rem, 2.8vw, 0.95rem);
+            border: 2px solid #1a1a2e;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: #e94560;
+        }
+
+        #status {
+            font-size: clamp(1.1rem, 3.5vw, 1.4rem);
+            font-weight: 700;
+            margin-bottom: 12px;
+            padding: 8px 20px;
+            background: white;
+            border: 2px solid #1a1a2e;
+            border-radius: 12px;
+            box-shadow: 2px 2px 0 #1a1a2e;
+            flex-shrink: 0;
+        }
+
+        #table {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 5px;
+            margin: 8px 0;
+            width: 100%;
+            flex: 1;
+            justify-content: center;
+            min-height: 0;
+        }
+
+        .row {
+            display: flex;
+            gap: 5px;
+            justify-content: center;
+            width: 100%;        }
+
+        .cell {
+            width: clamp(50px, 13vw, 75px);
+            height: clamp(50px, 13vw, 75px);
+            border: 2px solid #1a1a2e;
+            border-radius: 12px;
+            background: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            flex-shrink: 0;
+            box-shadow: 2px 2px 0 #1a1a2e;
+        }
+
+        .cell.eliminated {
+            background: #fee;
+            opacity: 0.6;
+        }
+
+        .cell.eliminated::after {
+            content: "✕";
+            position: absolute;
+            color: #e94560;
+            font-weight: bold;
+            font-size: clamp(1.5rem, 6vw, 2.5rem);
+        }
+
+        .stickman-svg {
+            width: 85%;
+            height: 85%;
+        }
+
+        .target-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(233, 69, 96, 0.6);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            border-radius: 10px;
+            font-size: clamp(1.5rem, 6vw, 2.5rem);
+            cursor: pointer;
+        }
+
+        #dice {            font-size: clamp(1.5rem, 6vw, 2.2rem);
+            margin: 6px 0;
+            animation: none;
+            flex-shrink: 0;
+        }
+
+        #dice.rolling {
+            animation: roll 0.5s ease-in-out;
+        }
+
+        @keyframes roll {
+            0%, 100% { transform: rotate(0deg); }
+            25% { transform: rotate(90deg); }
+            50% { transform: rotate(180deg); }
+            75% { transform: rotate(270deg); }
+        }
+
+        .controls {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+            gap: 6px;
+            margin-top: 6px;
+            flex-shrink: 0;
+        }
+
+        .controls button {
+            width: auto;
+            min-width: 90px;
+            max-width: 140px;
+            padding: 6px 16px;
+            font-size: clamp(0.8rem, 2.8vw, 0.9rem);
+            margin: 3px 0;
+        }
+
+        .lobby-box {
+            background: white;
+            padding: 15px;
+            border-radius: 12px;
+            border: 2px solid #1a1a2e;
+            box-shadow: 3px 3px 0 #1a1a2e;
+            width: 100%;
+            max-width: 380px;
+            max-height: 85vh;
+            overflow-y: auto;
+        }
+
+        .player-slots {
+            display: grid;            grid-template-columns: repeat(2, 1fr);
+            gap: 6px;
+            margin: 10px 0;
+        }
+
+        .slot {
+            padding: 8px;
+            border: 2px solid #1a1a2e;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: clamp(0.8rem, 2.8vw, 0.9rem);
+            text-align: center;
+        }
+
+        .slot.filled {
+            background: #27ae60;
+            color: white;
+        }
+
+        .share-row {
+            display: flex;
+            gap: 6px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin: 8px 0;
+        }
+
+        .share-btn {
+            flex: 1;
+            min-width: 110px;
+            max-width: none;
+            padding: 8px;
+        }
+
+        .share-wa {
+            background: #25D366;
+            color: white;
+            border-color: #25D366;
+        }
+
+        .share-generic {
+            background: #00d9ff;
+            color: #1a1a2e;
+            border-color: #00d9ff;
+        }
+
+        .share-copy {
+            background: #7f8c8d;
+            color: white;
+            border-color: #7f8c8d;        }
+
+        .msg {
+            padding: 6px 12px;
+            margin: 8px 0;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: clamp(0.8rem, 2.8vw, 0.9rem);
+        }
+
+        .msg.success {
+            background: #27ae60;
+            color: white;
+        }
+
+        .msg.error {
+            background: #e94560;
+            color: white;
+        }
+
+        .msg.waiting {
+            color: #e94560;
+            font-weight: 700;
+        }
+
+        .winner-text {
+            font-size: clamp(1.3rem, 4.5vw, 2.2rem);
+            color: #27ae60;
+            margin: 15px 0;
+            font-weight: 700;
+            text-align: center;
+        }
+
+        @media (max-width: 480px) {
+            body { padding: 5px; }
+            .screen { padding: 5px; }
+            .cell { border-width: 2px; border-radius: 10px; }
+            button { padding: 8px 14px; }
+            .controls button { padding: 5px 12px; min-width: 80px; }
+        }
+
+        @media (min-width: 768px) {
+            .cell { border-width: 2px; border-radius: 12px; }
+            #table { gap: 6px; }
+            .row { gap: 6px; }
+        }
+    </style>
+</head>
+<body>
+    <!-- HOME SCREEN -->
+    <div id="home" class="screen active">
+        <h1>🎮 Stickman Gun</h1>
+        <button class="btn-primary" onclick="show('lobby')">🌍 Play Online</button>
+        <button onclick="startLocal()">👥 2 Players (Local)</button>
+        <button onclick="startAI()">🤖 Vs Computer</button>
+    </div>
+
+    <!-- LOBBY SCREEN -->
+    <div id="lobby" class="screen">
+        <div class="lobby-box">
+            <h2>Online Lobby</h2>
+            <p style="margin-bottom: 15px; color: #666; font-size: 0.9rem;">Connect with friends or random players!</p>
+            
+            <div style="margin-bottom: 15px;">
+                <p style="font-size: 0.85rem; color: #666; margin-bottom: 8px;">🚀 Quick Match</p>
+                <button class="btn-primary" onclick="quickMatch()" id="quickMatchBtn">Find Opponent</button>
+                <p id="searchingText" class="msg waiting" style="display: none;">Searching for players...</p>
+            </div>
+            
+            <div style="margin-bottom: 15px;">
+                <p style="font-size: 0.85rem; color: #666; margin-bottom: 8px;">🏠 Create Private Room</p>
+                <button onclick="createRoom()">Create Room</button>
+            </div>
+            
+            <input id="roomInput" placeholder="Room ID" maxlength="10">
+            <button id="joinBtn" onclick="joinRoom()">Join Room</button>
+            
+            <div id="roomText" style="margin: 10px 0; font-weight: 600; font-size: clamp(0.85rem, 2.8vw, 0.95rem);"></div>
+            
+            <div id="playerSlots" class="player-slots" style="display: none;">
+                <div class="slot filled">✅ You (Host)</div>
+                <div class="slot">⏳ Waiting...</div>
+                <div class="slot">⏳ Waiting...</div>
+                <div class="slot">⏳ Waiting...</div>
+            </div>
+            
+            <div id="startSection" style="display: none; margin-top: 10px; padding-top: 8px; border-top: 2px dashed #1a1a2e;">
+                <button id="startBtn" class="btn-success" onclick="startGameFromLobby()" disabled>🎮 START GAME</button>
+                <p id="minPlayers" class="msg waiting">+1 Player to Start</p>
+            </div>
+            
+            <div class="share-row" id="shareRow" style="display: none;">
+                <button class="share-btn share-wa" onclick="shareRoom()">🟢 WhatsApp</button>
+                <button class="share-btn share-generic" onclick="shareRoom()">📤 Share</button>
+                <button class="share-btn share-copy" onclick="copyRoom()">📋 Copy ID</button>
+            </div>
+            
+            <div id="connMsg"></div>
+                        <button onclick="show('home')" style="margin-top: 8px;">⬅ Back</button>
+        </div>
+    </div>
+
+    <!-- GAME SCREEN -->
+    <div id="game" class="screen">
+        <div id="status">Turn: Player 1</div>
+        
+        <div id="table"></div>
+        
+        <div class="controls">
+            <div id="dice">🎲</div>
+            <button id="rollBtn" onclick="roll()">Roll</button>
+            <button onclick="show('home')">Exit</button>
+        </div>
+    </div>
+
+    <!-- GAME OVER SCREEN -->
+    <div id="gameOver" class="screen">
+        <div class="lobby-box">
+            <div class="winner-text" id="winnerText">Player 1 Wins!</div>
+            <button class="btn-primary" onclick="playAgain()">🔄 Play Again</button>
+            <button onclick="show('home')">🚪 Exit to Menu</button>
+        </div>
+    </div>
+
+    <script>
+        // Game Configuration
+        const PLAYABLE_ROWS = [0, 2, 4, 6, 8];
+        const DICE_NUMBERS = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
+        const MAX_STAGE = 5;
+        const MIN_PLAYERS = 2;
+        const MAX_PLAYERS = 4;
+        
+        // Game State
+        let peer = null, conn = null;
+        let isHost = false;
+        let mode = "local";
+        let currentTurn = "p1";
+        let roomId = null;
+        let isTargeting = false;
+        let stateGameOver = false;
+        let connectedPlayers = 1;
+        let inLobby = false;
+        let myPlayerId = null;
+        
+        let players = ["p1", "p2"];
+        let grid = { p1: {}, p2: {} };
+        let eliminated = { p1: [], p2: [] };
+        // Fair Random Dice (0-9)
+        function getFairRandomNumber() {
+            const randomIndex = Math.floor(Math.random() * DICE_NUMBERS.length);
+            return DICE_NUMBERS[randomIndex];
+        }
+
+        function isPlayableNumber(num) {
+            return PLAYABLE_ROWS.includes(num);
+        }
+
+        // Navigation
+        function show(id) {
+            document.querySelectorAll(".screen").forEach(s => s.classList.remove("active"));
+            document.getElementById(id).classList.add("active");
+            if (id === "home") cleanup();
+        }
+
+        function cleanup() {
+            if (peer) {
+                try { peer.destroy(); } catch(e) {}
+                peer = null;
+            }
+            conn = null;
+            roomId = null;
+            isHost = false;
+            connectedPlayers = 1;
+            inLobby = false;
+            myPlayerId = null;
+        }
+
+        // Game Setup
+        function resetGame(playerCount = 2) {
+            players = [];
+            grid = {};
+            eliminated = {};
+            
+            const names = mode === "ai" ? ["You", "CPU"] : 
+                         mode === "online" ? ["You", "Opponent"] : 
+                         ["Player 1", "Player 2"];
+            
+            for (let i = 0; i < playerCount; i++) {
+                const name = names[i];
+                players.push({ name: name, isCpu: mode === "ai" && i === 1 });
+                grid[name] = {};
+                eliminated[name] = [];
+                PLAYABLE_ROWS.forEach(r => { grid[name][r] = 0; });
+            }
+            
+            currentTurn = "p1";
+            isTargeting = false;            stateGameOver = false;
+        }
+
+        function startLocal() {
+            mode = "local";
+            resetGame(2);
+            show("game");
+            render();
+        }
+
+        function startAI() {
+            mode = "ai";
+            resetGame(2);
+            show("game");
+            render();
+        }
+
+        // ========== FIXED ONLINE CONNECTION ==========
+        function createRoom() {
+            cleanup();
+            mode = "online";
+            inLobby = true;
+            isHost = true;
+            connectedPlayers = 1;
+            myPlayerId = "p1";
+            
+            // Create Peer with custom ID for easier connection
+            peer = new Peer(null, {
+                debug: 2,
+                config: { 
+                    'iceServers': [
+                        { urls: 'stun:stun.l.google.com:19302' },
+                        { urls: 'stun:stun1.l.google.com:19302' }
+                    ] 
+                }
+            });
+
+            peer.on("open", id => {
+                console.log("Host Peer ID:", id);
+                roomId = id.substring(0, 8).toUpperCase();
+                document.getElementById("roomText").innerText = "Room ID: " + roomId;
+                document.getElementById("playerSlots").style.display = "grid";
+                document.getElementById("shareRow").style.display = "flex";
+                document.getElementById("startSection").style.display = "block";
+                updateSlots();
+                updateStartButton();
+                showConnMsg("✅ Room created! Share ID: " + roomId, "success");
+            });
+
+            peer.on("connection", c => {                console.log("Player connected!");
+                if (connectedPlayers >= MAX_PLAYERS) {
+                    c.send({type:"FULL"});
+                    c.close();
+                    return;
+                }
+                conn = c;
+                setupHostConn();
+                connectedPlayers++;
+                updateSlots();
+                updateStartButton();
+                
+                // Send confirmation to guest
+                c.send({ 
+                    type: "JOINED", 
+                    count: connectedPlayers,
+                    hostId: peer.id 
+                });
+                
+                showConnMsg("✅ Player " + connectedPlayers + " joined!", "success");
+            });
+
+            peer.on("error", err => {
+                console.error("Host error:", err);
+                showConnMsg("❌ Connection error: " + err.type, "error");
+            });
+
+            peer.on("disconnected", () => {
+                console.log("Host disconnected");
+                showConnMsg("⚠️ Disconnected from server", "error");
+            });
+        }
+
+        function joinRoom() {
+            const id = document.getElementById("roomInput").value.trim().toUpperCase();
+            if (!id) {
+                showConnMsg("❌ Enter Room ID", "error");
+                return;
+            }
+
+            cleanup();
+            mode = "online";
+            inLobby = true;
+            isHost = false;
+            myPlayerId = "p2";
+            
+            const joinBtn = document.getElementById("joinBtn");
+            joinBtn.disabled = true;
+            joinBtn.innerText = "Connecting...";
+            showConnMsg("🔄 Connecting to room...", "waiting");
+            peer = new Peer(null, {
+                debug: 2,
+                config: { 
+                    'iceServers': [
+                        { urls: 'stun:stun.l.google.com:19302' },
+                        { urls: 'stun:stun1.l.google.com:19302' }
+                    ] 
+                }
+            });
+
+            peer.on("open", () => {
+                console.log("Guest Peer ID:", peer.id);
+                console.log("Connecting to host:", id);
+                
+                conn = peer.connect(id, {
+                    metadata: { playerId: "p2" }
+                });
+                
+                conn.on("open", () => {
+                    console.log("Connected to host!");
+                    roomId = id;
+                    setupGuestConn();
+                    
+                    // Send JOIN message to host
+                    conn.send({ 
+                        type: "JOIN", 
+                        playerId: "p2",
+                        guestId: peer.id 
+                    });
+                    
+                    showConnMsg("✅ Connected to room!", "success");
+                    joinBtn.disabled = false;
+                    joinBtn.innerText = "Join Room";
+                });
+
+                conn.on("error", (err) => {
+                    console.error("Connection error:", err);
+                    showConnMsg("❌ Failed to connect. Check Room ID!", "error");
+                    joinBtn.disabled = false;
+                    joinBtn.innerText = "Join Room";
+                });
+
+                conn.on("close", () => {
+                    console.log("Connection closed");
+                    showConnMsg("⚠️ Disconnected from host", "error");
+                });
+            });
+
+            peer.on("error", (err) => {                console.error("Peer error:", err);
+                showConnMsg("❌ Network error", "error");
+                joinBtn.disabled = false;
+                joinBtn.innerText = "Join Room";
+            });
+
+            // Timeout after 15 seconds
+            setTimeout(() => {
+                if (joinBtn.disabled) {
+                    showConnMsg("❌ Connection timeout", "error");
+                    joinBtn.disabled = false;
+                    joinBtn.innerText = "Join Room";
+                }
+            }, 15000);
+        }
+
+        // Host connection setup
+        function setupHostConn() {
+            conn.on("data", data => {
+                console.log("Host received:", data);
+                
+                if (data.type === "JOIN") {
+                    // Guest joined - send confirmation
+                    conn.send({ 
+                        type: "JOINED", 
+                        count: connectedPlayers,
+                        hostId: peer.id 
+                    });
+                    showConnMsg("✅ Player connected!", "success");
+                }
+                
+                if (data.type === "roll") {
+                    applyBuild(data.player, data.number);
+                    currentTurn = "p2"; // Guest just played, now host's turn
+                    updateStatus();
+                    render();
+                }
+                
+                if (data.type === "attack") {
+                    if (!eliminated[data.to].includes(data.row)) {
+                        eliminated[data.to].push(data.row);
+                    }
+                    const keys = Object.keys(grid[data.from]);
+                    for (let k of keys) {
+                        if (grid[data.from][k] === MAX_STAGE) {
+                            grid[data.from][k] = 4;
+                            break;
+                        }
+                    }
+                    isTargeting = false;                    render();
+                    checkWin();
+                    if (!stateGameOver) {
+                        currentTurn = "p1"; // Back to host
+                        updateStatus();
+                    }
+                }
+            });
+        }
+
+        // Guest connection setup
+        function setupGuestConn() {
+            conn.on("data", data => {
+                console.log("Guest received:", data);
+                
+                if (data.type === "JOINED") {
+                    connectedPlayers = data.count;
+                    showConnMsg("✅ Connected to host!", "success");
+                }
+                
+                if (data.type === "roll") {
+                    applyBuild(data.player, data.number);
+                    currentTurn = "p1"; // Host just played, now guest's turn
+                    updateStatus();
+                    render();
+                }
+                
+                if (data.type === "attack") {
+                    if (!eliminated[data.to].includes(data.row)) {
+                        eliminated[data.to].push(data.row);
+                    }
+                    const keys = Object.keys(grid[data.from]);
+                    for (let k of keys) {
+                        if (grid[data.from][k] === MAX_STAGE) {
+                            grid[data.from][k] = 4;
+                            break;
+                        }
+                    }
+                    isTargeting = false;
+                    render();
+                    checkWin();
+                    if (!stateGameOver) {
+                        currentTurn = "p2"; // Back to guest
+                        updateStatus();
+                    }
+                }
+                
+                if (data.type === "START") {
+                    startGameOnline(data.count);
+                }            });
+        }
+
+        function send(data) {
+            if (conn && conn.open) {
+                console.log("Sending:", data);
+                conn.send(data);
+            } else {
+                console.error("Connection not open!");
+            }
+        }
+
+        function updateSlots() {
+            const slots = document.querySelectorAll(".slot");
+            const names = ["You (Host)", "Player 2", "Player 3", "Player 4"];
+            slots.forEach((slot, i) => {
+                if (i < connectedPlayers) {
+                    slot.className = "slot filled";
+                    slot.innerText = "✅ " + names[i];
+                } else {
+                    slot.className = "slot";
+                    slot.innerText = "⏳ Waiting...";
+                }
+            });
+        }
+
+        function updateStartButton() {
+            const btn = document.getElementById("startBtn");
+            const msg = document.getElementById("minPlayers");
+            if (!btn) return;
+            
+            const needed = MIN_PLAYERS - connectedPlayers;
+            if (isHost && connectedPlayers >= MIN_PLAYERS) {
+                btn.disabled = false;
+                btn.innerHTML = `🎮 START (${connectedPlayers})`;
+                msg.innerText = "Ready!";
+                msg.className = "msg success";
+            } else if (isHost) {
+                btn.disabled = true;
+                btn.innerHTML = "🎮 START GAME";
+                msg.innerText = `+${needed} Player${needed>1?'s':''} to Start`;
+                msg.className = "msg waiting";
+            } else {
+                msg.innerText = "Waiting for host...";
+                msg.className = "msg";
+                btn.style.display = "none";
+            }
+        }
+
+        function startGameFromLobby() {            if (isHost && connectedPlayers >= MIN_PLAYERS) {
+                send({ type: "START", count: connectedPlayers });
+                startGameOnline(connectedPlayers);
+            }
+        }
+
+        function startGameOnline(count) {
+            resetGame(count);
+            inLobby = false;
+            show("game");
+            render();
+        }
+
+        function quickMatch() {
+            const btn = document.getElementById("quickMatchBtn");
+            const txt = document.getElementById("searchingText");
+            btn.disabled = true;
+            txt.style.display = "block";
+            
+            setTimeout(() => {
+                mode = "online";
+                isHost = Math.random() > 0.5;
+                connectedPlayers = 2;
+                txt.style.display = "none";
+                btn.disabled = false;
+                startGameOnline(2);
+            }, 2000);
+        }
+
+        function shareRoom() {
+            const text = "Join my Stickman Gun game! Room ID: " + roomId;
+            if (navigator.share) {
+                navigator.share({ title: "Stickman Gun", text: text }).catch(() => {});
+            } else {
+                copyRoom();
+            }
+        }
+
+        function copyRoom() {
+            const text = document.getElementById("roomText").innerText.replace("Room ID: ", "");
+            navigator.clipboard.writeText(text).then(() => {
+                showConnMsg("✅ Copied to Clipboard!", "success");
+            }).catch(() => {
+                showConnMsg("❌ Copy failed", "error");
+            });
+        }
+
+        function showConnMsg(text, type) {
+            const el = document.getElementById("connMsg");
+            if (!el) return;            el.innerText = text;
+            el.className = "msg " + type;
+            setTimeout(() => {
+                el.innerText = "";
+                el.className = "";
+            }, 3000);
+        }
+
+        function startGame() {
+            resetGame();
+            show("game");
+            render();
+        }
+
+        // Game Logic
+        function roll() {
+            if (isTargeting) return;
+            if (mode === "online" && !isMyTurn()) return;
+
+            const btn = document.getElementById("rollBtn");
+            const dice = document.getElementById("dice");
+            btn.disabled = true;
+            dice.classList.add("rolling");
+
+            const finalNumber = getFairRandomNumber();
+            let spins = 0;
+            
+            const interval = setInterval(() => {
+                const randomNum = getFairRandomNumber();
+                dice.innerText = "🎲 " + randomNum;
+                spins++;
+                
+                if (spins > 10) {
+                    clearInterval(interval);
+                    dice.innerText = "🎲 " + finalNumber;
+                    dice.classList.remove("rolling");
+                    finalizeRoll(finalNumber);
+                }
+            }, 80);
+        }
+
+        function finalizeRoll(num) {
+            const player = players[currentTurn === "p1" ? 0 : 1];
+            const name = player.name;
+            
+            if (!isPlayableNumber(num)) {
+                log(name + ": Rolled " + num + " - Not playable! Turn skipped.");
+                nextTurn();
+                return;
+            }            
+            if (eliminated[name].includes(num)) {
+                log(name + ": Row " + num + " eliminated!");
+                nextTurn();
+                return;
+            }
+
+            if (!grid[name]) grid[name] = {};
+            if (grid[name][num] === undefined) grid[name][num] = 0;
+            
+            if (grid[name][num] === MAX_STAGE) {
+                grid[name][num] = 4;
+                log(name + ": Row " + num + " reset!");
+                render();
+                nextTurn();
+                return;
+            }
+
+            grid[name][num]++;
+            const stageNames = ["", "🙂", "🧍", "🔫", "💣", "⭐"];
+            log(name + ": Rolled " + num + " - " + stageNames[grid[name][num]]);
+
+            if (grid[name][num] === MAX_STAGE) {
+                isTargeting = true;
+                log(name + ": ⭐ CHANCE! Tap opponent row!");
+                
+                if (mode === "ai" && currentTurn === "p2") {
+                    setTimeout(cpuShoot, 800);
+                } else if (mode === "online") {
+                    send({ type: "roll", player: name, number: num });
+                }
+                render();
+            } else {
+                if (mode === "online") send({ type: "roll", player: name, number: num });
+                nextTurn();
+                render();
+            }
+        }
+
+        function applyBuild(playerName, num) {
+            if (!isPlayableNumber(num)) return;
+            if (!grid[playerName]) grid[playerName] = {};
+            if (eliminated[playerName].includes(num)) return;
+            if (grid[playerName][num] === undefined) grid[playerName][num] = 0;
+            if (grid[playerName][num] === MAX_STAGE) {
+                grid[playerName][num] = 4;
+                return;
+            }
+            grid[playerName][num]++;
+            if (grid[playerName][num] === MAX_STAGE) isTargeting = true;        }
+
+        function selectTarget(targetPlayer, row) {
+            if (!isTargeting) return;
+            if (targetPlayer === currentTurn) return;
+            if (eliminated[targetPlayer].includes(row)) return;
+
+            eliminated[targetPlayer].push(row);
+            
+            const attacker = players[currentTurn === "p1" ? 0 : 1];
+            const keys = Object.keys(grid[attacker.name]);
+            for (let k of keys) {
+                if (grid[attacker.name][k] === MAX_STAGE) {
+                    grid[attacker.name][k] = 4;
+                    break;
+                }
+            }
+
+            log(attacker.name + " eliminated " + targetPlayer + "'s Row " + row + "!");
+            
+            if (mode === "online") {
+                send({ type: "attack", from: attacker.name, to: targetPlayer, row: row });
+            }
+            
+            isTargeting = false;
+            render();
+            checkWin();
+            if (!stateGameOver) nextTurn();
+        }
+
+        function nextTurn() {
+            if (stateGameOver) return;
+            currentTurn = currentTurn === "p1" ? "p2" : "p1";
+            updateStatus();
+            
+            const btn = document.getElementById("rollBtn");
+            const player = players[currentTurn === "p1" ? 0 : 1];
+            
+            if (mode === "ai" && currentTurn === "p2") {
+                btn.disabled = true;
+                setTimeout(cpuRoll, 800);
+            } else if (mode === "online") {
+                if (isMyTurn()) {
+                    btn.disabled = false;
+                } else {
+                    btn.disabled = true;
+                }
+            } else {
+                btn.disabled = false;
+            }        }
+
+        function isMyTurn() {
+            if (mode !== "online") return true;
+            return (isHost && currentTurn === "p1") || (!isHost && currentTurn === "p2");
+        }
+
+        // Difficult AI Logic
+        function cpuRoll() {
+            const cpu = players[1];
+            const cpuName = cpu.name;
+            
+            const rolledNum = getFairRandomNumber();
+            
+            document.getElementById("dice").innerText = "🎲 " + rolledNum;
+            
+            if (!isPlayableNumber(rolledNum)) {
+                log(`🤖 CPU rolled ${rolledNum} - Not playable! Turn skipped.`);
+                nextTurn();
+                return;
+            }
+            
+            if (eliminated[cpuName].includes(rolledNum)) {
+                log(`🤖 CPU rolled ${rolledNum} - Row eliminated!`);
+                nextTurn();
+                return;
+            }
+            
+            if (!grid[cpuName][rolledNum]) grid[cpuName][rolledNum] = 0;
+            
+            if (grid[cpuName][rolledNum] === MAX_STAGE) {
+                grid[cpuName][rolledNum] = 4;
+                log(`🤖 CPU rolled ${rolledNum} - Reset to bullet!`);
+                render();
+                nextTurn();
+                return;
+            }
+            
+            grid[cpuName][rolledNum]++;
+            const stageNames = ["", "🙂 Head", "🧍 Body", "🔫 Gun", "💣 Bullet", "⭐ CHANCE"];
+            log(`🤖 CPU rolled ${rolledNum}: ${stageNames[grid[cpuName][rolledNum]]}`);
+            
+            if (grid[cpuName][rolledNum] === MAX_STAGE) {
+                isTargeting = true;
+                log(`🤖 CPU: ⭐ CHANCE! Choosing target...`);
+                setTimeout(cpuShoot, 800);
+            } else {
+                render();
+                nextTurn();
+            }        }
+
+        function cpuShoot() {
+            const cpu = players[1];
+            const cpuName = cpu.name;
+            
+            const target = findBiggestThreat();
+            
+            if (target) {
+                log(`🤖 CPU fires at ${target.player.name}'s Row ${target.row}! (Threat: ${target.threat})`);
+                
+                const keys = Object.keys(grid[cpuName]);
+                for (let k of keys) {
+                    if (grid[cpuName][k] === MAX_STAGE) {
+                        grid[cpuName][k] = 4;
+                        break;
+                    }
+                }
+                
+                if (!eliminated[target.player.name]) eliminated[target.player.name] = [];
+                eliminated[target.player.name].push(target.row);
+                
+                isTargeting = false;
+                render();
+                checkWin();
+                if (!stateGameOver) nextTurn();
+            } else {
+                log(`🤖 CPU: No valid targets!`);
+                isTargeting = false;
+                nextTurn();
+            }
+        }
+
+        function findBiggestThreat() {
+            let best = null;
+            let bestScore = -1;
+            
+            players.forEach((opponent, idx) => {
+                if (idx === 1 || opponent.isCpu) return;
+                
+                const name = opponent.name;
+                if (!grid[name]) return;
+                
+                PLAYABLE_ROWS.forEach(row => {
+                    if (eliminated[name].includes(row)) return;
+                    
+                    const stage = grid[name][row] || 0;
+                    let score = 0;
+                    
+                    if (stage === 4) score = 150;                    else if (stage === 3) score = 100;
+                    else if (stage === 2) score = 60;
+                    else if (stage === 1) score = 30;
+                    
+                    const strongRows = PLAYABLE_ROWS.filter(r => 
+                        !eliminated[name].includes(r) && 
+                        (grid[name][r] || 0) >= 3
+                    ).length;
+                    score += strongRows * 20;
+                    
+                    score += (4 - eliminated[name].length) * 10;
+                    
+                    if (stage >= 3) score += 30;
+                    if (stage === 4) score += 50;
+                    
+                    if (score > bestScore) {
+                        bestScore = score;
+                        best = { player: opponent, row: row, threat: score };
+                    }
+                });
+            });
+            
+            return best;
+        }
+
+        function updateStatus() {
+            const el = document.getElementById("status");
+            if (!el) return;
+            const player = players[currentTurn === "p1" ? 0 : 1];
+            if (mode === "online") { el.innerText = isMyTurn() ? "Your Turn" : "Opponent Turn"; }
+            else if (mode === "ai") { el.innerText = player.isCpu ? "Computer Thinking..." : "Your Turn"; }
+            else { el.innerText = "Turn: " + player.name; }
+        }
+
+        function checkWin() {
+            const p1Lost = eliminated[players[0].name].length;
+            const p2Lost = eliminated[players[1].name].length;
+            
+            if (p1Lost >= 4 || p2Lost >= 4) {
+                stateGameOver = true;
+                const winner = p1Lost >= 4 ? players[1].name : players[0].name;
+                
+                setTimeout(() => {
+                    document.getElementById("winnerText").innerText = "🏆 " + winner + " Wins!";
+                    show("gameOver");
+                }, 400);
+            }
+        }
+
+        function log(msg) {            const el = document.getElementById("status");
+            if (el) { el.innerText = msg; setTimeout(updateStatus, 1500); }
+        }
+
+        function getStickmanSVG(stage) {
+            const stroke = "#000";
+            return `
+                <svg class="stickman-svg" viewBox="0 0 100 100">
+                    ${stage >= 1 ? `
+                        <circle cx="50" cy="20" r="12" fill="none" stroke="${stroke}" stroke-width="3"/>
+                        <line x1="44" y1="17" x2="48" y2="19" stroke="${stroke}" stroke-width="2"/>
+                        <line x1="56" y1="17" x2="52" y2="19" stroke="${stroke}" stroke-width="2"/>
+                        <line x1="43" y1="26" x2="57" y2="24" stroke="${stroke}" stroke-width="2"/>
+                    ` : ''}
+                    ${stage >= 2 ? `
+                        <line x1="50" y1="32" x2="50" y2="65" stroke="${stroke}" stroke-width="3"/>
+                        <line x1="50" y1="65" x2="35" y2="90" stroke="${stroke}" stroke-width="3"/>
+                        <line x1="50" y1="65" x2="65" y2="90" stroke="${stroke}" stroke-width="3"/>
+                        <line x1="50" y1="45" x2="30" y2="55" stroke="${stroke}" stroke-width="3"/>
+                    ` : ''}
+                    ${stage >= 3 ? `
+                        <line x1="50" y1="45" x2="75" y2="40" stroke="${stroke}" stroke-width="3"/>
+                        <rect x="75" y="36" width="18" height="8" fill="none" stroke="${stroke}" stroke-width="2.5"/>
+                    ` : ''}
+                    ${stage >= 4 ? `
+                        <circle cx="95" cy="40" r="4" fill="${stroke}" stroke="none"/>
+                    ` : ''}
+                    ${stage >= 5 ? `
+                        <polygon points="50,5 53,12 60,12 55,17 57,25 50,20 43,25 45,17 40,12 47,12" fill="#f1c40f" stroke="${stroke}" stroke-width="1"/>
+                    ` : ''}
+                </svg>
+            `;
+        }
+
+        function render() {
+            const table = document.getElementById("table");
+            if (!table) return;
+            table.innerHTML = "";
+
+            PLAYABLE_ROWS.forEach(r => {
+                const rowDiv = document.createElement("div");
+                rowDiv.className = "row";
+
+                players.forEach((player, pIdx) => {
+                    const cell = document.createElement("div");
+                    cell.className = "cell";
+                    const name = player.name;
+
+                    if (eliminated[name].includes(r)) {
+                        cell.classList.add("eliminated");                        cell.innerHTML = getStickmanSVG(grid[name][r] || 0);
+                    } else {
+                        const lvl = grid[name][r] || 0;
+                        cell.innerHTML = getStickmanSVG(lvl);
+                        
+                        const attackerIdx = currentTurn === "p1" ? 0 : 1;
+                        if (isTargeting && pIdx !== attackerIdx && !player.isCpu) {
+                            const overlay = document.createElement("div");
+                            overlay.className = "target-overlay";
+                            overlay.style.display = "flex";
+                            overlay.innerHTML = "🎯";
+                            overlay.onclick = () => selectTarget(name, r);
+                            cell.appendChild(overlay);
+                        }
+                    }
+
+                    rowDiv.appendChild(cell);
+                });
+
+                table.appendChild(rowDiv);
+            });
+
+            updateStatus();
+        }
+
+        function playAgain() {
+            stateGameOver = false;
+            if (mode === "online" && isHost) { show("lobby"); }
+            else if (mode === "online") {
+                log("Waiting for host...");
+                setTimeout(() => { resetGame(players.length); show("game"); render(); }, 1500);
+            } else if (mode === "ai") { startAI(); }
+            else { startLocal(); }
+        }
+    </script>
+</body>
+</html>
